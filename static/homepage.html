@@ -1,0 +1,763 @@
+<html>
+<head>
+    <link rel="stylesheet" href="static/styles.css">
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/data.js"></script>
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://code.highcharts.com/modules/windbarb.js"></script>
+    <script src="https://code.highcharts.com/modules/pattern-fill.js"></script>
+</head>
+
+<body>
+<script>
+
+    //Function to Reset the Application
+    function resetScreen(){
+        document.getElementById('ErrorHandle').style.display = 'none';
+        document.getElementById('futureWeather').style.display = 'none';
+        document.getElementById('currentWeather').style.display = 'none';
+        document.getElementById('everyDayWeather').style.display = 'none';
+        document.getElementById('day_weather_headline').style.display = 'none';
+        document.getElementById('weather_chart_headline').style.display = 'none';
+        document.getElementById('highchartsContainer1').style.display = 'none';
+        document.getElementById('highchartsContainer2').style.display = 'none';
+        document.getElementById("checklocation").checked = false;
+        document.getElementById("city").disabled = false;
+        document.getElementById("street").disabled = false;
+        document.getElementById("state").disabled = false;
+    }
+
+    //Function to execute when Current Location checkbox is clicked
+    function change(){
+        var decider = document.getElementById('checklocation');
+        if(decider.checked){
+            document.getElementById("latitude").value=0;
+            document.getElementById("longitude").value=0;
+            document.getElementById("address").value=0;
+            document.getElementById("city").value='';
+            document.getElementById("state").value='';
+            document.getElementById("street").value='';
+            document.getElementById("city").disabled = true;
+            document.getElementById("street").disabled = true;
+            document.getElementById("state").disabled = true;
+            getlocation()
+        } else {
+            document.getElementById("city").disabled = false;
+            document.getElementById("street").disabled = false;
+            document.getElementById("state").disabled = false;
+            document.getElementById("location").value="undefined";
+        }
+    }
+
+    var obj;
+    //Function to Get Location using call to ipinfo API
+    function getlocation(){
+        fetch('https://ipinfo.io/json?token=878e96704f64a8')
+        .then(res => res.json())
+        .then(data => {obj = data.loc;
+            cityname = data.city;
+            region = data.region;
+            country = data.country;})
+        .then(() => {document.getElementById("location").value=obj;
+                    document.getElementById("address").value= cityname+", "+region+", "+country;});
+    }
+
+    //Function to get Latitude and Longitude value using call to Google Geocoding API
+    function getlocation1(){
+        var street = document.getElementById('street').value;
+        var city = document.getElementById('city').value;
+        var state = document.getElementById('state').value;
+        var address = street + '+' + city + '+' + state;
+        var api_domain = 'https://maps.googleapis.com/maps/api/geocode/json?address=';
+        var api_key = '&key=AIzaSyCVQlrc_DEOWKlOsYR0RWDSpX6qquRxVeY';
+        var geocode_url = api_domain+address+api_key;
+        fetch(geocode_url)
+        .then(res => res.json())
+        .then(data => {lat = data.results[0].geometry.location.lat;
+                form_address = data.results[0].formatted_address;
+                long = data.results[0].geometry.location.lng;})
+        .then(() => {document.getElementById("longitude").value=long;
+        document.getElementById("latitude").value=lat;
+        document.getElementById("address").value=form_address;
+        })
+    }
+
+    var fullWeatherData;
+
+    //Function to handle Toggle UP and DOWN Button in HighCharts Page
+    function toggle_up(){
+        console.log("In toggle_up function");
+        document.getElementById('arrowButton').src = 'static/img/point-down-512.png';
+        document.getElementById('arrowButton').setAttribute( "onClick", "showWeatherCharts()" );
+        document.getElementById('highchartsContainer1').style.display = 'none';
+        document.getElementById('highchartsContainer2').style.display = 'none';
+    }
+
+    //Function  to get Weather Data from Flask backend using call to tomorrow.io API
+    function getWeatherData(){
+        document.getElementById('ErrorHandle').style.display = 'none';
+        document.getElementById('futureWeather').style.display = 'none';
+        document.getElementById('currentWeather').style.display = 'none';
+        document.getElementById('everyDayWeather').style.display = 'none';
+        document.getElementById('day_weather_headline').style.display = 'none';
+        document.getElementById('weather_chart_headline').style.display = 'none';
+        document.getElementById('highchartsContainer1').style.display = 'none';
+        document.getElementById('highchartsContainer2').style.display = 'none';
+        document.getElementById('arrowButton').src = 'static/img/point-down-512.png';
+        document.getElementById('arrowButton').setAttribute( "onClick", "showWeatherCharts()" );
+        fetch('/json-data?' + new URLSearchParams({
+        latitude: document.getElementById("latitude").value,
+        longitude: document.getElementById("longitude").value,
+        location: document.getElementById("location").value,
+        address: document.getElementById("address").value
+        }))
+        .then(res => res.json())
+        .then(data => { fullWeatherData = data;
+        printWeatherResults(data);})
+        .catch(function(error) {
+            document.getElementById('ErrorHandle').style.display = 'block';
+            console.log(error);
+        });
+        return false;
+    }
+
+    //Function to print Weather Data
+    function printWeatherResults(data){
+        document.getElementById('futureWeather').style.display = 'block';
+        document.getElementById('currentWeather').style.display = 'block';
+        var weathercodes = {
+            "1000": [ "Clear" , "static/img/clear_day.svg" ],
+            "1001": [ "Cloudy" , "static/img/cloudy.svg" ],
+            "1100": [ "Mostly Clear" , "static/img/mostly_clear_day.svg" ],
+            "1101": [ "Partly Cloudy" , "static/img/partly_cloudy_day.svg" ],
+            "1102": [ "Mostly Cloudy" , "static/img/mostly_cloudy.svg" ],
+            "2000": [ "Fog" , "static/img/fog.svg" ],
+            "2100": [ "Light Fog" , "static/img/fog_light.svg" ],
+            "3000": [ "Light Wind" , "static/img/light_wind.jpg" ],
+            "3001": [ "Wind" , "static/img/wind.png" ],
+            "3002": [ "Strong Wind" , "static/img/strong-wind.png" ],
+            "4000": [ "Drizzle" , "static/img/drizzle.svg" ],
+            "4001": [ "Rain" , "static/img/rain.svg" ],
+            "4200": [ "Light Rain" , "static/img/rain_light.svg" ],
+            "4201": [ "Heavy Rain" , "static/img/rain_heavy.svg" ],
+            "5000": [ "Snow" , "static/img/snow.svg" ],
+            "5001": [ "Flurries" , "static/img/flurries.svg" ],
+            "5100": [ "Light Snow" , "static/img/snow_light.svg" ],
+            "5101": [ "Heavy Snow" , "static/img/snow_heavy.svg" ],
+            "6000": [ "Freezing Drizzle" , "static/img/freezing_drizzle.svg" ],
+            "6001": [ "Freezing Rain" , "static/img/freezing_rain.svg" ],
+            "6200": [ "Light Freezing Rain" , "static/img/freezing_rain_light_svg" ],
+            "6201": [ "Heavy Freezing Rain" , "static/img/freezing_rain_heavy.svg" ],
+            "7000": [ "Ice Pellets" , "static/img/ice_pellets.svg" ],
+            "7101": [ "Heavy Ice Pellets" , "static/img/ice_pellets_heavy.svg" ],
+            "7102": [ "Light Ice Pellets" , "static/img/ice_pellets_light.svg" ],
+            "8000": [ "Thunderstorm" , "static/img/tstorm.svg" ]
+        }
+        var options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+        var current = data.data.timelines[0].intervals[0].values;
+        var wcode = current.weatherCode;
+        var winfo = weathercodes[wcode];
+        var wimage = winfo[1];
+        var wdesc = winfo[0];
+
+        document.getElementById("curr_weather").src = wimage;
+        document.getElementById("curr_weather_desc").innerHTML = wdesc;
+        document.getElementById("curr_temperature").innerHTML = current.temperature+"&deg;";
+        document.getElementById("curr_humidity").innerHTML = current.humidity+"%";
+        document.getElementById("curr_pressure").innerHTML = current.pressureSeaLevel+"inHg";
+        document.getElementById("curr_windspeed").innerHTML = current.windSpeed+"mph";
+        document.getElementById("curr_visibility").innerHTML = current.visibility+"mi";
+        document.getElementById("curr_cloudcover").innerHTML = current.cloudCover+"%";
+        document.getElementById("curr_uv").innerHTML = current.uvIndex;
+        document.getElementById("curr_address").innerHTML = document.getElementById("address").value;
+
+        var num_intervals = data.data.timelines[1].intervals.length;
+        var weather_arr = data.data.timelines[1].intervals;
+        
+        for(let i=0;i<num_intervals;i++){
+            var dayWeather = weather_arr[i].values;
+            var today  = new Date(weather_arr[i].startTime);
+            var day = today.toLocaleDateString("en-US", options)
+            var status = dayWeather.weatherCode;
+            var temp_high = dayWeather.temperatureMax;
+            var temp_low = dayWeather.temperatureMin;
+            var wind_speed = dayWeather.windSpeed;
+            var winfo1 = weathercodes[status];
+            var wimage_future = winfo1[1];
+            var wdesc_future = winfo1[0];
+            var table = document.getElementById("futureWeatherTable");
+            var row = table.insertRow();
+            row.setAttribute("id","row"+i);
+            row.setAttribute("class","tablerow");
+            var cell1 = row.insertCell(0);
+            var cell2 = row.insertCell(1);
+            var cell2a = row.insertCell(2);
+            var cell3 = row.insertCell(3);
+            var cell4 = row.insertCell(4);
+            var cell5 = row.insertCell(5);
+            cell1.innerHTML = day;
+            cell2.innerHTML = '<img src="'+wimage_future+'" height=25 width= 25>';
+            cell2a.innerHTML = wdesc_future;
+            cell2a.style.textAlign = "left";
+            cell3.innerHTML = temp_high;
+            cell4.innerHTML = temp_low;
+            cell5.innerHTML = wind_speed;
+        }
+
+        for(let i=0;i<num_intervals;i++){
+            var dayWeather = weather_arr[i].values;
+            document.getElementById("row"+i).addEventListener("click", function() {
+                showDailyWeather(weather_arr,i, weathercodes);
+            });
+        }
+        var current = data.data.timelines[1].intervals[0]
+    }
+
+    //Function to show Daily Weather Data when user clicks on Table Row 
+    function showDailyWeather(weather_arr,x, weathercodes){
+
+        precipitationTypes = {"0": "N/A", "1": "Rain", "2": "Snow", "3": "Freezing Rain", "4": "Ice Pellets"};
+        var options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+       
+        document.getElementById('futureWeather').style.display = 'none';
+        document.getElementById('currentWeather').style.display = 'none';
+        document.getElementById('everyDayWeather').style.display = 'block';
+        document.getElementById('day_weather_headline').style.display = 'block';
+        document.getElementById('weather_chart_headline').style.display = 'block';
+
+        weather_today = weather_arr[x].values;
+        var today  = new Date(weather_arr[x].startTime);
+        var date = today.toLocaleDateString("en-US", options)
+        var day_status = weather_today.weatherCode;
+        var day_weather_info = weathercodes[day_status];
+        var day_weather_status = day_weather_info[0];
+        var day_weather_image = day_weather_info[1];
+        var day_temp_high = weather_today.temperatureMax;
+        var day_temp_low = weather_today.temperatureMin;
+        var day_wind_speed = weather_today.windSpeed;
+        var day_humidity = weather_today.humidity;
+        var day_visibility = weather_today.visibility;
+        var sunrise_date = new Date(weather_today.sunriseTime);
+        var sunset_date = new Date(weather_today.sunsetTime);
+        var day_sunrise = sunrise_date.getHours()+"AM";
+        var day_sunset = (sunset_date.getHours()%12)+"PM";
+        var day_precipitation = precipitationTypes[weather_today.precipitationType];
+        var day_rain_chance = weather_today.precipitationProbability;
+
+        document.getElementById('day_date').innerHTML = date;
+        document.getElementById('day_status').innerHTML = day_weather_status;
+        document.getElementById('day_status_image').src = day_weather_image;
+        document.getElementById('day_temp').innerHTML = day_temp_high+"&deg;F / "+day_temp_low+"&deg;F";
+        document.getElementById('day_precipitation').innerHTML ="<b>"+ day_precipitation + "</b>";
+        document.getElementById('day_rain_chance').innerHTML = "<b>"+day_rain_chance+"%"+ "</b>";
+        document.getElementById('day_windspeed').innerHTML = "<b>"+day_wind_speed +"mph"+ "</b>";
+        document.getElementById('day_humidity').innerHTML = "<b>"+day_humidity+"%"+ "</b>";
+        document.getElementById('day_visibility').innerHTML = "<b>"+day_visibility+"mi"+ "</b>";
+        document.getElementById('day_sunrise_sunset').innerHTML = "<b>"+day_sunrise+"/"+day_sunset+ "</b>";
+
+    }
+
+    //Function to show Temperature and Meteogram HighCharts using call to HighCharts API
+    function showWeatherCharts(){
+
+        document.getElementById('arrowButton').src = 'static/img/point-up-512.png';
+        document.getElementById('arrowButton').setAttribute( "onClick", "toggle_up()" );
+        document.getElementById('highchartsContainer1').style.display = 'block';
+        document.getElementById('highchartsContainer2').style.display = 'block';
+
+        window.location.href = '#highchartsContainer1';
+        var weather_array = fullWeatherData.data.timelines[1].intervals;
+        var nums = weather_array.length;
+        var options1 = { month: 'short', day: 'numeric' };
+        var day_arr = [];
+        var minTemp_arr = [];
+        var maxTemp_arr = [];
+        var xaxis_labels = [];
+        var startDay = new Date(weather_array[0].startTime).toLocaleDateString("en-US", options1);
+        var endDay = new Date(weather_array[nums-1].startTime).toLocaleDateString("en-US", options1);
+
+        for(let i=0;i<nums;i++){
+            var temp_date = new Date(weather_array[i].startTime);
+            var temp_day = temp_date.toLocaleDateString("en-US", options1);
+            var temp_min = weather_array[i].values.temperatureMin;
+            var temp_max = weather_array[i].values.temperatureMax;
+            var temp_arr = [temp_day,temp_min,temp_max];
+            xaxis_labels.push(temp_day);
+            day_arr.push(temp_arr);
+        }
+        //Displaying Temperature HighCharts API
+        Highcharts.chart('highchartsContainer1', {
+
+            chart: {
+                type: 'arearange',
+                zoomType: 'x',
+                scrollablePlotArea: {
+                    minWidth: 600,
+                    scrollPositionX: 1
+                }
+            },
+
+            title: {
+                text: 'Temperature Ranges (Min,Max)'
+            },
+
+            xAxis: {
+                type: 'date',
+                categories: xaxis_labels
+            },
+
+            yAxis: {
+                title: {
+                    text: null
+                }
+            },
+
+            tooltip: {
+                crosshair: true,
+                shared: true,
+                valueSuffix: '°F',
+            },
+
+            legend: {
+                enabled: false
+            },
+
+            plotOptions: {
+                series:{
+                    fillColor:{
+                        linearGradient: [0,0,0,400],
+                        stops: [
+                            [0, Highcharts.color('#e65c00').setOpacity(1).get('rgba')],
+                            [1,'#cce0ff']
+                        ]
+                    }
+                }
+            },
+
+
+            series: [{
+                name: 'Temperatures',
+                data: day_arr,
+
+            }]
+        });
+
+        //Code for Displaying Meteogram Highchart
+        var hour_weather_arr = fullWeatherData.data.timelines[2].intervals;
+        var nums = hour_weather_arr.length;
+        var day_arr = [];
+        var hour_pressures = [];
+        var hour_temperatures = [];
+        var hour_humidities = [];
+        var hour_windSpeeds = [];
+        var hour_windDirections = [];
+        var hour_ranges = [];
+
+        for(let i=0;i<nums;i=i+3){
+            var hour_values = hour_weather_arr[i].values;
+            const dateToday = new Date(hour_weather_arr[i].startTime);
+            var x = Date.parse(dateToday);
+            var hour_pressure= [ x, hour_values.pressureSeaLevel];
+            var hour_temperature= [ x, hour_values.temperature];
+            var hour_humidity=[x, hour_values.humidity];
+            var hour_windSpeed = hour_values.windSpeed;
+            var hour_windDirection = {"x":x, "value": hour_windSpeed,"direction":hour_values.windDirection};
+            hour_pressures.push(hour_pressure);
+            hour_temperatures.push(hour_temperature);
+            hour_humidities.push(hour_humidity);
+            hour_windDirections.push(hour_windDirection);
+        }
+        
+        // Creating Meteogram Chart
+        Highcharts.chart('highchartsContainer2', {
+
+            chart: {
+                marginBottom: 70,
+                marginRight: 40,
+                marginTop: 50,
+                plotBorderWidth: 1,
+                height: 500,
+                alignTicks: false,
+                scrollablePlotArea: {
+                    minWidth: 720,
+                }
+            },
+            //Title
+            title: {
+            text: 'Hourly Weather (For Next 5 Days)',
+            align: 'center',
+            style: {
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis'
+                }
+            },
+
+            tooltip: {
+            shared: true,
+            useHTML: true,
+            headerFormat:
+                '<small>{point.x:%A, %b %e, %H:%M} - {point.point.to:%H:%M}</small><br>' +
+                '<b>{point.point.symbolName}</b><br>'
+
+            },
+            xAxis: [{ // Bottom X axis
+            type: 'datetime',
+            tickInterval: 4 * 36e5, // four hours
+            tickLength: 0,
+            gridLineWidth: 1,
+            gridLineColor: 'rgba(128, 128, 128, 0.1)',
+            startOnTick: false,
+            endOnTick: false,
+            minPadding: 0,
+            maxPadding: 0,
+            offset: 30,
+            showLastLabel: true,
+            labels: {
+                format: '{value:%H}'
+            },
+            crosshair: true
+        }, { // Top X axis
+            linkedTo: 0,
+            type: 'datetime',
+            tickInterval: 24 * 3600 * 1000,
+            labels: {
+                format: '{value:<span style="font-size: 12px; font-weight: bold">%a</span> %b %e}',
+                align: 'left',
+                x: 3,
+                y: -5
+            },
+            opposite: true,
+            tickLength: 20,
+            gridLineWidth: 1
+        }],
+
+            yAxis:[{ // Temperature axis
+              title: {
+                text: null
+              },
+              labels: {
+                format: '{value}°F',
+                style: {
+                  fontSize: '10px'
+                },
+                x: -3
+              },
+              plotLines: [{ // Zero plane
+                value: 0,
+                color: '#BBBBBB',
+                width: 1,
+                zIndex: 2
+              }],
+              maxPadding: 0.3,
+              minRange: 8,
+              tickInterval: 1,
+              gridLineColor: 'rgba(128, 128, 128, 0.1)'
+
+            }, {
+              title: {
+                text: null
+              },
+              labels: {
+                enabled: true
+              },
+              gridLineWidth: 0,
+              tickLength: 0,
+              minRange: 10,
+              min: 0
+
+            }, { // Air pressure axis
+              allowDecimals: false,
+              title: { // Title on top of axis
+                text: 'hPa',
+                offset: 0,
+                align: 'high',
+                rotation: 0,
+                style: {
+                  fontSize: '10px',
+                },
+                textAlign: 'left',
+                x: 3
+              },
+              labels: {
+                style: {
+                  fontSize: '8px',
+                  color: Highcharts.getOptions().colors[2]
+                },
+                y: 2,
+                x: 3
+              },
+              gridLineWidth: 0,
+              opposite: true,
+              showLastLabel: false
+            }],
+
+            legend: {
+                enabled: false
+            },
+
+            plotOptions: {
+            series: {
+                pointPlacement: 'between'
+            }
+            },
+            series: [{
+            name: 'Temperature',
+            type: 'spline',
+            data: hour_temperatures,
+            marker: {
+                enabled: false,
+                states: {
+                    hover: {
+                        enabled: true
+                    }
+                }
+            },
+            tooltip: {
+                pointFormat: '<span style="color:{point.color}">\u25CF</span> ' +
+                    '{series.name}: <b>{point.y}°F</b><br/>'
+            },
+            zIndex: 1,
+            color: '#FF3333',
+            negativeColor: '#48AFE8'
+        },  {
+            name: 'Humidity',
+            type: 'column',
+            data: hour_humidities,
+            yAxis: 1,
+            grouping: false,
+            dataLabels: {
+                enabled: true,
+                filter: {
+                    operator: '>',
+                    property: 'y',
+                    value: 0
+                },
+            },
+            tooltip: {
+                valueSuffix: ' %'
+            }
+        }, {
+            name: 'Air Pressure',
+            color: 'orange',
+            data: hour_pressures,
+            marker: {
+                enabled: false
+            },
+            shadow: false,
+            tooltip: {
+                valueSuffix: ' inHg'
+            },
+            dashStyle: 'shortdot',
+            yAxis: 2
+        }, {
+            name: 'Wind',
+            type: 'windbarb',
+            id: 'windbarbs',
+            color: Highcharts.getOptions().colors[1],
+            lineWidth: 1.5,
+            data: hour_windDirections,
+            vectorLength: 18,
+            yOffset: -15,
+            tooltip: {
+                valueSuffix: ' m/s'
+            }
+        }]
+        });
+    }
+</script>
+
+<div class="formcontainer">
+    
+    <div class="banner">
+        <p style="text-align: left; padding-left: 30px; font-size: 25px; padding-top:20px; color: rgb(0, 0, 0);font-family: sans-serif">
+        <b>Weather Search</b></p>
+        <p style="text-align: left;padding-left: 30px; font-size: 20px;  color: rgb(0, 0, 0); font-family: sans-serif">
+            Fill out the form to get weather info!</p>
+    </div>
+
+    <div class="fieldcontainer">
+
+        <form id="AddressForm"method="get" onsubmit="return getWeatherData()">
+            <label for="street" >Street<span style="color:red">*</span></label><br>
+            <input type="text" id="street" name="street" required style="width:440px;"><br>
+            <label for="city">City<span style="color:red">*</span></label> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;
+            <label for="state">State<span style="color:red">*</span></label><br>
+            <input type="text" id="city" name="city" required>
+            <select id="state" name="state" onchange="getlocation1()" required>
+                <option disabled selected value> Select your state </option>
+                <option value="Alabama">Alabama</option>
+                <option value="Alaska">Alaska</option>
+                <option value="Arizona">Arizona</option>
+                <option value="Arkansas">Arkansas</option>
+                <option value="California">California</option>
+                <option value="Colorado">Colorado</option>
+                <option value="Connecticut">Connecticut</option>
+                <option value="Delaware">Delaware</option>
+                <option value="District Of Columbia">District Of Columbia</option>
+                <option value="Florida">Florida</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Hawaii">Hawaii</option>
+                <option value="Idaho">Idaho</option>
+                <option value="Illinois">Illinois</option>
+                <option value="Indiana">Indiana</option>
+                <option value="Iowa">Iowa</option>
+                <option value="Kansas">Kansas</option>
+                <option value="Kentucky">Kentucky</option>
+                <option value="Louisiana">Louisiana</option>
+                <option value="Maine">Maine</option>
+                <option value="Maryland">Maryland</option>
+                <option value="Massachusetts">Massachusetts</option>
+                <option value="Michigan">Michigan</option>
+                <option value="Minnesota">Minnesota</option>
+                <option value="Mississippi">Mississippi</option>
+                <option value="Missouri">Missouri</option>
+                <option value="Montana">Montana</option>
+                <option value="Nebraska">Nebraska</option>
+                <option value="Nevada">Nevada</option>
+                <option value="New Hampshire">New Hampshire</option>
+                <option value="New Jersey">New Jersey</option>
+                <option value="New Mexico">New Mexico</option>
+                <option value="New York">New York</option>
+                <option value="North Carolina">North Carolina</option>
+                <option value="North Dakota">North Dakota</option>
+                <option value="Ohio">Ohio</option>
+                <option value="Oklahoma">Oklahoma</option>
+                <option value="Oregon">Oregon</option>
+                <option value="Pennsylvania">Pennsylvania</option>
+                <option value="Rhode Island">Rhode Island</option>
+                <option value="South Carolina">South Carolina</option>
+                <option value="South Dakota">South Dakota</option>
+                <option value="Tennessee">Tennessee</option>
+                <option value="Texas">Texas</option>
+                <option value="Utah">Utah</option>
+                <option value="Vermont">Vermont</option>
+                <option value="Virginia">Virginia</option>
+                <option value="Washington">Washington</option>
+                <option value="West Virginia">West Virginia</option>
+                <option value="Wisconsin">Wisconsin</option>
+                <option value="Wyoming">Wyoming</option>
+            </select><br>
+            <hr style="width:90%; text-align:center; margin:20px; margin-bottom:10px;">
+            <label for="checklocation" ><b>Want us to auto-detect your location? Check here</b></label>
+            <input type="checkbox" id = "checklocation" name="checklocation" onclick="change();"><br>
+            <input type="hidden"  id="latitude" name="latitude">
+            <input type="hidden"  id="longitude" name="longitude">
+            <input type="hidden"  id="location" name="location" value="undefined">
+            <input type="hidden"  id="address" name="address">
+            <input type="submit" id="submit" value="SUBMIT"/>
+            <input type="reset" value="CLEAR" onclick="resetScreen()"></input>
+        </form>
+    </div>
+</div>
+
+
+
+<div id="ErrorHandle">
+    <p style="font-size: 25px; padding:20px;color:red"> No data found!</p>
+</div>
+
+<div id="day_weather_headline">
+    <p style="font-size: 35px; padding:20px;">Daily Weather Details</p>
+</div>
+
+
+<div id="everyDayWeather">
+    <div style="position:relative;">
+        <img id="day_status_image" style="position:absolute; right:50px; top:20px; width:120px; height:120px;"/>
+    </div>
+   
+    <p id="day_date" style="font-size:25px; color: #5a4c76; padding-top:20px; padding-left:20px;"></p>
+    <p id="day_status" style="font-size:25px; color: #5a4c76; padding-left:20px;"></p>
+    <p id="day_temp" style="font-size:32px; color: #5a4c76; padding-left:20px;"></p>
+   
+    <div>
+        <div id="dayWeatherFields">
+            <p style="font-size:20px;color: white;">Precipitation:</p>
+            <p style="font-size:20px;color: white;">Chance of Rain:</p>
+            <p style="font-size:20px;color: white;">Wind Speed:</p>
+            <p style="font-size:20px;color: white;">Humidity:</p>
+            <p style="font-size:20px;color: white;">Visibility:</p>
+            <p style="font-size:20px;color: white;">Sunrise/Sunset:</p>
+        </div>
+        <div id="dayWeatherInfo">
+            <p id="day_precipitation" style="font-size:20px;color: white; "></p>
+            <p id="day_rain_chance" style="font-size:20px;color: white; "></p>
+            <p id="day_windspeed" style="font-size:20px; color: white; "></p>
+            <p id="day_humidity" style="font-size:20px; color: white; "></p>
+            <p id="day_visibility" style="font-size:20px; color: white;"></p>
+            <p id="day_sunrise_sunset" style="font-size:20px; color: white;"></p>
+        </div>
+    </div>
+</div>
+
+
+<div id="weather_chart_headline">
+    <p style="font-size: 35px;">Weather Charts</p>
+    <img id="arrowButton" src="static/img/point-down-512.png" onclick="showWeatherCharts()" role="button" style="width:50px; height:40px;">
+</div>
+
+
+<div id="currentWeather">
+    <p id="curr_address" style="padding-top:20px; padding-left:20px; font-size:25px; margin:0; color:grey;"></p><br>
+    <table>
+        <td><img id="curr_weather" src="static/img/clear_day.svg" style="padding:20px;"width="100" height="90">
+            <p id="curr_weather_desc" style="text-align:center;padding-left:20px;color:grey;"></p></td>
+        <td>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</td>
+        <td style="font-size:100px; text-align:right;color:grey;" id="curr_temperature">0</p></td>
+    </table>
+    <table style="width:100%;border-spacing: 0 12px;">
+          <tr>
+            <th style="color:grey;">Humidity</th>
+            <th style="color:grey;">Pressure</th>
+            <th style="color:grey;">Wind Speed</th>
+            <th style="color:grey;">Visibility</th>
+            <th style="color:grey;">Cloud Cover</th>
+            <th style="color:grey;">UV Level</th>
+          </tr>
+
+          <tr>
+              <td style="text-align:center"><img src="static/img/humidity.png" height=50 width=50></td>
+              <td style="text-align:center"><img src="static/img/Pressure.png" height=50 width=50></td>
+              <td style="text-align:center"><img src="static/img/Wind_Speed.png" height=50 width=50></td>
+              <td style="text-align:center"><img src="static/img/Visibility.png" height=50 width=50></td>
+              <td style="text-align:center"><img src="static/img/Cloud_Cover.png" height=50 width=50></td>
+              <td style="text-align:center"><img src="static/img/UV_Level.png" height=50 width=50></td>
+          </tr>
+
+          <tr>
+            <td id="curr_humidity" style="text-align:center;color:grey;">humidity</td>
+            <td id="curr_pressure" style="text-align:center;color:grey;">pressure</td>
+            <td id="curr_windspeed" style="text-align:center;color:grey;">windspeed</td>
+            <td id="curr_visibility" style="text-align:center;color:grey;">visibility</td>
+            <td id="curr_cloudcover" style="text-align:center;color:grey;">cloud</td>
+            <td id="curr_uv" style="text-align:center;color:grey;">uv</td>
+          </tr>
+    </table>
+</div>
+
+
+
+<div id="futureWeather">
+    <table id="futureWeatherTable" style="width:100%">
+        <tr class="tablerow" style="background-color: rgb(61,48,145); height: 40px; ">
+            <th style="border:none;">Date</th>
+            <th colspan="2" style="border:none;">Status</th>
+            <th style="border:none;">Temp High</th>
+            <th style="border:none;">Temp Low</th>
+            <th style="border:none;">Wind Speed</th>
+        </tr>
+    </table>
+</div>
+
+
+<div id="highchartsContainer1">
+</div>
+
+<div id="highchartsContainer2">
+</div>
+
+</body>
+</html>

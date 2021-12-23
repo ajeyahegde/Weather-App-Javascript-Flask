@@ -1,0 +1,136 @@
+.formcontainer{
+    padding-top: 50px;
+    margin-right: auto;
+    margin-left: auto;
+    width: 530px;
+    height: 450px;
+    padding-bottom: 50px;
+}
+.banner{
+    background-image: url("img/banner.jpg");
+    background-size: 530px 140px;
+    height: 120px;
+    width: 530px;
+}
+.fieldcontainer{
+    background-color: white;
+    height: 300px;
+}
+input[type=text], select {
+  padding: 5px 20px;
+  margin: 8px 20px;
+}
+input[type=submit]{
+  padding: 15px 25px;
+  margin: 8px 20px;
+  margin-right: 0px;
+  margin-top: 18px;
+  background-color: rgb(62,76, 157);
+  border: none;
+  color: white;
+  border-bottom: 6px solid #002080;
+}
+input[type=reset]{
+  padding: 15px 25px;
+  margin: 8px 0px;
+  background-color: #f7b632f5;
+  border: none;
+  color: white;
+  border-bottom: 6px solid #f9a803;
+}
+body{
+    background-color: rgb(200,200,200);
+}
+form{
+    padding-top: 20px;
+}
+label {
+    font-size: 18px;
+    color: blue;
+    padding-left:20px;
+    padding-top:10px;
+}
+#currentWeather{
+    display: none;
+    background-color: white;
+    height: 400px;
+    width: 750px;
+    margin-right: auto;
+    margin-left: auto;
+}
+#futureWeather{
+    display: none;
+    padding-top: 75px;
+    height: 600px;
+    width: 900px;
+    margin-right: auto;
+    margin-left: auto;
+}
+.tablerow{
+    height: 80px;
+    width: 100%;
+    background-color: white;
+    padding-top: 5px;
+}
+.tablerow td{
+    text-align:center;
+    border: 1px solid white;
+}
+#futureWeatherTable{
+    border: 1px solid #CCC;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+#everyDayWeather{
+    background-image: linear-gradient(white, #433f6e);
+    height: 400px;
+    width: 550px;
+    margin-right: auto;
+    margin-left: auto;
+    display: none;
+}
+#dayWeatherInfo{
+    float:left;
+}
+#dayWeatherInfo p{
+    margin: 4px;
+    text-align:left;
+}
+#dayWeatherFields{
+    float:left;
+    margin-left:180px;
+}
+
+#dayWeatherFields p{
+    margin: 5px;
+    text-align:right;
+}
+#day_weather_headline{
+    display: none;
+    margin-right: auto;
+    margin-left: auto;
+    text-align: center;
+}
+#ErrorHandle{
+    display:none;
+    margin-right: auto;
+    margin-left: auto;
+    text-align: center;
+}
+#weather_chart_headline{
+    display: none;
+    margin-right: auto;
+    margin-left: auto;
+    text-align: center;
+}
+#highchartsContainer1{
+ height: 500px;
+}
+
+#highchartsContainer2{
+ height: 500px;
+ padding-top: 50px;
+}
+
+
