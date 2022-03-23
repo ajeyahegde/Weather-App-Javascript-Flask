@@ -11,10 +11,10 @@ format. The page will also provide day’s weather details.
 Frontend - Javascript, HTML, CSS
 Backend - Python, Flask, Google Cloud Platform
 
-**Technologies Used: **
+**Technologies Used:**
 HTML, CSS, Javascript, DOM, JSON, Python, Flask, GCP
 
-**APIs Used: **
+**APIs Used:**
 
 1) Tomorrow.io API - To get Weather Data
 2) Geocoding API - To convert users form input to location information.
